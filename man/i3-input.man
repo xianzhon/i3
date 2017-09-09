@@ -41,6 +41,18 @@ The prompt string is not included in the user input/command.
 -f <font>::
 Use the specified X11 core font (use +xfontsel+ to chose a font).
 
+-w <width>::
+Set the width of the inputbox, unit is pixel.
+
+-b <background>::
+Set background color of the inputbox, format is hex color string (e.g. #000000).
+
+-o <foreground>::
+Set foreground color of the inputbox, format is hex color string (e.g. #FFFFFF).
+
+-r <borderColor>::
+Set border color of the inputbox, format is hex color string (e.g. #FF0000).
+
 -v::
 Show version and exit.
 
