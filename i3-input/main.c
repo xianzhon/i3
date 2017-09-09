@@ -33,7 +33,6 @@
 
 #include "i3-input.h"
 
-#define MAX_WIDTH logical_px(500)
 #define BORDER logical_px(2)
 #define PADDING logical_px(2)
 
@@ -54,6 +53,11 @@ static i3Font font;
 static i3String *prompt;
 static int prompt_offset = 0;
 static int limit;
+static int width = 500; /*unit: px*/
+static char borderColor[8] = "#FF0000";
+static char fgColor[8] = "#FFFFFF";
+static char bgColor[8] = "#000000";
+
 xcb_window_t root;
 xcb_connection_t *conn;
 xcb_screen_t *root_screen;
@@ -112,9 +116,9 @@ static uint8_t *concat_strings(char **glyphs, int max) {
 static int handle_expose(void *data, xcb_connection_t *conn, xcb_expose_event_t *event) {
     printf("expose!\n");
 
-    color_t border_color = draw_util_hex_to_color("#FF0000");
-    color_t fg_color = draw_util_hex_to_color("#FFFFFF");
-    color_t bg_color = draw_util_hex_to_color("#000000");
+    color_t border_color = draw_util_hex_to_color(borderColor);
+    color_t fg_color = draw_util_hex_to_color(fgColor);
+    color_t bg_color = draw_util_hex_to_color(bgColor);
 
     int text_offset = BORDER + PADDING;
 
@@ -126,13 +130,13 @@ static int handle_expose(void *data, xcb_connection_t *conn, xcb_expose_event_t 
 
     /* draw the prompt … */
     if (prompt != NULL) {
-        draw_util_text(prompt, &surface, fg_color, bg_color, text_offset, text_offset, MAX_WIDTH - text_offset);
+        draw_util_text(prompt, &surface, fg_color, bg_color, text_offset, text_offset, logical_px(width) - text_offset);
     }
 
     /* … and the text */
     if (input_position > 0) {
         i3String *input = i3string_from_ucs2(glyphs_ucs, input_position);
-        draw_util_text(input, &surface, fg_color, bg_color, text_offset + prompt_offset, text_offset, MAX_WIDTH - text_offset);
+        draw_util_text(input, &surface, fg_color, bg_color, text_offset + prompt_offset, text_offset, logical_px(width) - text_offset);
         i3string_free(input);
     }
 
@@ -290,7 +294,7 @@ static int handle_key_press(void *ignored, xcb_connection_t *conn, xcb_key_press
 }
 
 static xcb_rectangle_t get_window_position(void) {
-    xcb_rectangle_t result = (xcb_rectangle_t){logical_px(50), logical_px(50), MAX_WIDTH, font.height + 2 * BORDER + 2 * PADDING};
+    xcb_rectangle_t result = (xcb_rectangle_t){logical_px(50), logical_px(50), logical_px(width), font.height + 2 * BORDER + 2 * PADDING};
 
     xcb_get_property_reply_t *supporting_wm_reply = NULL;
     xcb_get_input_focus_reply_t *input_focus = NULL;
@@ -382,14 +386,18 @@ int main(int argc, char *argv[]) {
         {"socket", required_argument, 0, 's'},
         {"version", no_argument, 0, 'v'},
         {"limit", required_argument, 0, 'l'},
+        {"width", required_argument, 0, 'w'},
         {"prompt", required_argument, 0, 'P'},
         {"prefix", required_argument, 0, 'p'},
         {"format", required_argument, 0, 'F'},
         {"font", required_argument, 0, 'f'},
         {"help", no_argument, 0, 'h'},
+        {"background", required_argument, 0, 'b'},
+        {"foreground", required_argument, 0, 'o'},
+        {"borderColor", required_argument, 0, 'r'},
         {0, 0, 0, 0}};
 
-    char *options_string = "s:p:P:f:l:F:vh";
+    char *options_string = "s:p:P:f:l:w:F:b:o:r:vh";
 
     while ((o = getopt_long(argc, argv, options_string, long_options, &option_index)) != -1) {
         switch (o) {
@@ -409,6 +417,9 @@ int main(int argc, char *argv[]) {
             case 'l':
                 limit = atoi(optarg);
                 break;
+            case 'w':
+                width = atoi(optarg);
+                break;
             case 'P':
                 i3string_free(prompt);
                 prompt = i3string_from_utf8(optarg);
@@ -420,6 +431,15 @@ int main(int argc, char *argv[]) {
             case 'F':
                 FREE(format);
                 format = sstrdup(optarg);
+                break;
+            case 'b':
+                strncpy(bgColor, optarg, 7);
+                break;
+            case 'o':
+                strncpy(fgColor, optarg, 7);
+                break;
+            case 'r':
+                strncpy(borderColor, optarg, 7);
                 break;
             case 'h':
                 printf("i3-input " I3_VERSION "\n");
